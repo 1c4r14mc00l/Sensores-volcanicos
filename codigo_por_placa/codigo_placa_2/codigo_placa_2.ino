@@ -3,13 +3,14 @@
 
 // Declarar temperatures en memoria RTC
 RTC_DATA_ATTR int start = 0;  // Variable para el índice del sensor actual
+RTC_DATA_ATTR uint8_t MaxDevs = 34; // Cantidad máxima de sensores conectado a la placa
 RTC_DATA_ATTR int temperatures[34][3] = { 0 };  // Matriz para las temperaturas
-RTC_DATA_ATTR uint32_t appTxDutyCycle = 10000;  // Ciclo inicial de transmisión: 10 segundos
+RTC_DATA_ATTR uint32_t appTxDutyCycle = 5000;  // Ciclo inicial de transmisión: 10 segundos
 
 /* OTAA para*/
-uint8_t devEui[] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x06, 0x53, 0xC8 };
-uint8_t appEui[] = { 0x0D, 0xDB, 0x4E, 0x05, 0xD0, 0xBF, 0x54, 0x77 };
-uint8_t appKey[] = { 0x74, 0xD6, 0x6E, 0x63, 0x45, 0x82, 0x48, 0x27, 0xFE, 0xC5, 0xB7, 0x70, 0xBA, 0x2B, 0x50, 0x45 };
+uint8_t devEui[] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x06, 0xC8, 0x01 };
+uint8_t appEui[] = { 0x1A, 0x3C, 0x5F, 0x08, 0xE2, 0xB7, 0xD4, 0x9F };
+uint8_t appKey[] = { 0x26, 0x51, 0x35, 0x84, 0xA1, 0x81, 0x5D, 0x0F, 0x02, 0x05, 0x24, 0x57, 0xC3, 0x67, 0xE3, 0x71 };  
 
 /* ABP para*/
 uint8_t nwkSKey[] = { 0x15, 0xB1, 0xD0, 0xEF, 0xA4, 0x63, 0xDF, 0xBE, 0x3D, 0x11, 0x18, 0x1E, 0x1E, 0xC7, 0xDA,0x85 };
@@ -153,9 +154,7 @@ static void prepareTxFrame(uint8_t port) {
   appDataSize = 0;
 
   if (start < MaxDevs) {
-    Serial.print("VALOR INICIAL DE START: ");
-    Serial.println(start);
-
+    appTxDutyCycle = 5000;
     // Preparar datos para enviar
     appData[appDataSize++] = temperatures[start][0];
     appData[appDataSize++] = temperatures[start][1];
@@ -164,16 +163,21 @@ static void prepareTxFrame(uint8_t port) {
     Serial.print(" | ");
     Serial.print(appData[1]);
     Serial.print(" | ");
-    Serial.println(appData[2]);
+    Serial.print(appData[2]);
+    Serial.print(" ( ");
+    Serial.print(start);
+    Serial.print(" / ");
+    Serial.print(MaxDevs);
+    Serial.print(" ) at ");
+    Serial.println(appTxDutyCycle);
 
     start++; // Incrementar 'start' después de preparar la trama
   }
 
   if (start == MaxDevs) {
+    Serial.println(" DATO MAXIMO ALCANZADO, REINICIANDO... ");
     appTxDutyCycle = 60000; // Cambiar a tiempo extendido: 1 minuto
     start = 0; // Reiniciar 'start' a 0
-  } else if (start == 0) {
-    appTxDutyCycle = 10000; // Volver al ciclo original: 10 segundos
   }
 }
 
