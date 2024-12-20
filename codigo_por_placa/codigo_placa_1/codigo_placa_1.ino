@@ -4,6 +4,7 @@
 // Declarar temperatures en memoria RTC
 RTC_DATA_ATTR int start = 0;  // Variable para el índice del sensor actual
 RTC_DATA_ATTR uint8_t MaxDevs = 34;
+RTC_DATA_ATTR bool MatrizCreada = false;
 RTC_DATA_ATTR int temperatures[34][3] = { 0 };  // Matriz para las temperaturas
 RTC_DATA_ATTR uint32_t appTxDutyCycle = 5000;  // Ciclo inicial de transmisión: 3 segundos
 
@@ -65,8 +66,8 @@ const int x = MaxDevs;
 const int y = 3;
 
 static void ReadSensors() {
-  Serial.println("Entrando a ReadSensors...");
-  // Serial.println(MaxDevs);
+  if (!MatrizCreada){
+  // Serial.println("Entrando a ReadSensors...");
 
   OneWire32 ds(7);  // Inicializar OneWire en el pin 17
   uint64_t addr[] = {
@@ -106,45 +107,41 @@ static void ReadSensors() {
     0x9ed26d1b35646128,
   };  // Direcciones de los sensores
   
-  // // Buscar los dispositivos conectados
-  // uint8_t sensorCount = ds.search(addr, MaxDevs);
-  
   // Inicializar la matriz con ceros
-  Serial.println("Inicializando la matriz con ceros...");
-  for (int i = 0; i < x; i++) {
-    for (int j = 0; j < y; j++) {
-      temperatures[i][j] = 0;
+    // Serial.println("Inicializando la matriz con ceros...");
+    for (int i = 0; i < x; i++) {
+      for (int j = 0; j < y; j++) {
+        temperatures[i][j] = 0;
+      }
     }
-  }
-  Serial.println("Matriz de ceros creada");
+    Serial.println("Matriz de ceros creada");
 
-  // Solicitar lectura de temperaturas
-  Serial.println("Comenzando a leer sensores...");
-  ds.request();
-  vTaskDelay(750 / portTICK_PERIOD_MS);  // Esperar el tiempo necesario para la lectura
+    // Solicitar lectura de temperaturas
+    // Serial.println("Comenzando a leer sensores...");
+    vTaskDelay(750 / portTICK_PERIOD_MS);
+    ds.request();
+    vTaskDelay(750 / portTICK_PERIOD_MS);  // Esperar el tiempo necesario para la lectura
 
-  // Leer cada sensor
-  for (int k = 0; k < MaxDevs; k++) {
-    float tempC;
-    uint8_t err = ds.getTemp(addr[k], tempC);
-    
-    // Serial.println("antes de entrar al if !err");
-    if (!err) {
-      int temp = tempC * 100;
-      int e = temp / 100;
-      int d = temp % 100;
-      
-      temperatures[k][0] = k;  // Índice del sensor
-      // Serial.println(temperatures[k][0]);
-      temperatures[k][1] = e;  // Parte entera
-      // Serial.println(temperatures[k][1]);
-      temperatures[k][2] = d;  // Parte decimal
-      // Serial.println(temperatures[k][2]);
-    } else {
-      Serial.printf("Error al leer el sensor %d\n", k);
+    // Leer cada sensor
+    for (int k = 0; k < MaxDevs; k++) {
+      float tempC;
+      uint8_t err = ds.getTemp(addr[k], tempC);
+
+      if (!err) {
+        int temp = tempC * 100;
+        int e = temp / 100;
+        int d = temp % 100;
+
+        temperatures[k][0] = k;  // Índice del sensor
+        temperatures[k][1] = e;  // Parte entera
+        temperatures[k][2] = d;  // Parte decimal
+      } else {
+        Serial.printf("Error al leer el sensor %d\n", k);
+      }
     }
-  }
-  Serial.println("Lectura de sensores completada");
+    Serial.println("Lectura de sensores completada");
+    MatrizCreada = true; // Cambiar el estado de la matriz
+  } // Cierre del bloque 'if'
 }
 
 /* Prepares the payload of the frame */
@@ -157,32 +154,22 @@ static void prepareTxFrame(uint8_t port) {
     appData[appDataSize++] = temperatures[start][0];
     appData[appDataSize++] = temperatures[start][1];
     appData[appDataSize++] = temperatures[start][2];
-    Serial.print(appData[0]);
-    Serial.print(" | ");
-    Serial.print(appData[1]);
-    Serial.print(" | ");
-    Serial.print(appData[2]);
-    Serial.print(" ( ");
-    Serial.print(start);
-    Serial.print(" / ");
-    Serial.print(MaxDevs);
-    Serial.print(" ) at ");
-    Serial.println(appTxDutyCycle);
-
+    Serial.printf("%d | %d | %d ( %d / %d ) at %d\n", appData[0], appData[1], appData[2], start, MaxDevs, appTxDutyCycle);
     start++; // Incrementar 'start' después de preparar la trama
   }
 
-  if (start == MaxDevs) {
+  if (start >= MaxDevs) {
     Serial.println(" DATO MAXIMO ALCANZADO, REINICIANDO... ");
     appTxDutyCycle = 60000; // Cambiar a tiempo extendido: 1 minuto
     start = 0; // Reiniciar 'start' a 0
+    MatrizCreada = false; // Reiniciar la bandera para volver a crear la matriz
   }
 }
 
 // Configuración inicial
 void setup() {
   Serial.begin(115200);
-  Serial.println("Comenzando Serial ...");
+  // Serial.println("Comenzando Serial ...");
   ReadSensors();
   Mcu.begin(HELTEC_BOARD,SLOW_CLK_TPYE);
 }

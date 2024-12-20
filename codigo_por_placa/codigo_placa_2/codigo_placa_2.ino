@@ -1,10 +1,13 @@
+/* Código placa 2 */
+
 #include "LoRaWan_APP.h"
 #include "OneWireESP32.h"
 
 // Declarar temperatures en memoria RTC
 RTC_DATA_ATTR int start = 0;  // Variable para el índice del sensor actual
-RTC_DATA_ATTR uint8_t MaxDevs = 34; // Cantidad máxima de sensores conectado a la placa
-RTC_DATA_ATTR int temperatures[34][3] = { 0 };  // Matriz para las temperaturas
+RTC_DATA_ATTR uint8_t MaxDevs = 42; // Cantidad máxima de sensores conectado a la placa
+RTC_DATA_ATTR bool MatrizCreada = false;
+RTC_DATA_ATTR int temperatures[42][3] = { 0 };  // Matriz para las temperaturas
 RTC_DATA_ATTR uint32_t appTxDutyCycle = 5000;  // Ciclo inicial de transmisión: 10 segundos
 
 /* OTAA para*/
@@ -60,93 +63,101 @@ uint8_t confirmedNbTrials = 4;
 
 // *******Sensors Information*******
 
-const uint8_t MaxDevs = 34;  // Máximo de dispositivos
-
 // Función para leer sensores
 const int x = MaxDevs;
 const int y = 3;
 
 static void ReadSensors() {
+  if (!MatrizCreada){
   Serial.println("Entrando a ReadSensors...");
-  // Serial.println(MaxDevs);
 
-  OneWire32 ds(7);  // Inicializar OneWire en el pin 17
+  OneWire32 ds(17);  // Inicializar OneWire en el pin 17
   uint64_t addr[] = {
-    0x66ec108034646128,
-    0x582d168034646128,
-    0x3b98118034646128,
-    0x341f118034646128,
-    0xf185178034646128,
-    0x35db178034646128,
-    0xbfeb8d8d34646128,
-    0x82b76c8334646128,
-    0x70816e8334646128,
-    0xd1bf6e8334646128,
-    0x39a46d8334646128,
-    0x6b497b8334646128,
-    0x61d6f8334646128,
-    0x2e50281835646128,
-    0xc7b0281835646128,
-    0xb1d1241835646128,
-    0xd724141835646128,
-    0x5bc4c1835646128,
-    0x9cb1c1835646128,
-    0x5810361835646128,
-    0x7572e1835646128,
-    0x5789211835646128,
-    0x7572291835646128,
-    0x2d25291835646128,
-    0x932b351835646128,
-    0xae600d1835646128,
-    0x2847271835646128,
-    0xbf30371835646128,
-    0x6cf72f1835646128,
-    0x8d425e1c35646128,
-    0x5df15e1c35646128,
-    0x9a4a791b35646128,
-    0xb4df791b35646128,
-    0x9ed26d1b35646128,
-  };  // Direcciones de los sensores
+    0xb23b108034646128,
+    0x763b118034646128,
+    0x88c0178034646128,
+    0xaa96f8c34646128,
+    0x13944e8334646128,
+    0xb45c698334646128,
+    0x48d5798334646128,
+    0x36be7d8334646128,
+    0x5dc2638334646128,
+    0x97c06b8334646128,
+    0x3d7c6f8334646128,
+    0xa55d201835646128,
+    0xbf89481835646128,
+    0x62ea281835646128,
+    0x9636281835646128,
+    0xbcc7281835646128,
+    0xc1d8341835646128,
+    0x2e6e341835646128,
+    0x1a1c1835646128,
+    0x19613c1835646128,
+    0xc1c73a1835646128,
+    0xa580261835646128,
+    0xc2330e1835646128,
+    0x90bd2e1835646128,
+    0xa1bb3e1835646128,
+    0x89a4211835646128,
+    0xb926211835646128,
+    0x6ba7211835646128,
+    0x93d7211835646128,
+    0x175d291835646128,
+    0x532f291835646128,
+    0xdfaf291835646128,
+    0xc11b251835646128,
+    0x1cfc0d1835646128,
+    0xaffb131835646128,
+    0x1d380b1835646128,
+    0x7a6a0b1835646128,
+    0xb593b1835646128,
+    0x52173b1835646128,
+    0x31fe0f1835646128,
+    0x9972f1835646128,
+    0xec463f1835646128,
+	};
   
-  // // Buscar los dispositivos conectados
-  // uint8_t sensorCount = ds.search(addr, MaxDevs);
   
   // Inicializar la matriz con ceros
-  Serial.println("Inicializando la matriz con ceros...");
-  for (int i = 0; i < x; i++) {
-    for (int j = 0; j < y; j++) {
-      temperatures[i][j] = 0;
+    Serial.println("Inicializando la matriz con ceros...");
+    for (int i = 0; i < x; i++) {
+      for (int j = 0; j < y; j++) {
+        temperatures[i][j] = 0;
+      }
     }
-  }
-  Serial.println("Matriz de ceros creada");
+    Serial.println("Matriz de ceros creada");
 
-  // Solicitar lectura de temperaturas
-  Serial.println("Comenzando a leer sensores...");
-  ds.request();
-  vTaskDelay(750 / portTICK_PERIOD_MS);  // Esperar el tiempo necesario para la lectura
+    // Solicitar lectura de temperaturas
+    Serial.println("Comenzando a leer sensores...");
+    vTaskDelay(750 / portTICK_PERIOD_MS);
+    ds.request();
+    vTaskDelay(750 / portTICK_PERIOD_MS);  // Esperar el tiempo necesario para la lectura
 
-  // Leer cada sensor
-  for (int k = 0; k < MaxDevs; k++) {
-    float tempC;
-    uint8_t err = ds.getTemp(addr[k], tempC);
-    
-    // Serial.println("antes de entrar al if !err");
-    if (!err) {
-      int temp = tempC * 100;
-      int e = temp / 100;
-      int d = temp % 100;
-      
-      temperatures[k][0] = k;  // Índice del sensor
-      // Serial.println(temperatures[k][0]);
-      temperatures[k][1] = e;  // Parte entera
-      // Serial.println(temperatures[k][1]);
-      temperatures[k][2] = d;  // Parte decimal
-      // Serial.println(temperatures[k][2]);
-    } else {
-      Serial.printf("Error al leer el sensor %d\n", k);
+    // Leer cada sensor
+    for (int k = 0; k < MaxDevs; k++) {
+      float tempC;
+      uint8_t err = ds.getTemp(addr[k], tempC);
+
+      if (!err) {
+        int temp = tempC * 100;
+        int e = temp / 100;
+        int d = temp % 100;
+
+        temperatures[k][0] = k;  // Índice del sensor
+        temperatures[k][1] = e;  // Parte entera
+        temperatures[k][2] = d;  // Parte decimal
+      } else {
+        Serial.printf("Error al leer el sensor %d\n", k);
+      }
     }
-  }
-  Serial.println("Lectura de sensores completada");
+    Serial.println("Lectura de sensores completada");
+    MatrizCreada = true; // Cambiar el estado de la matriz
+  } // Cierre del bloque 'if'
+  else { // Apertura del bloque 'else'
+    Serial.print(MatrizCreada); 
+    Serial.print(" | ");
+    Serial.println("AUN NO");
+  } // Cierre del bloque 'else'
 }
 
 /* Prepares the payload of the frame */
@@ -159,18 +170,7 @@ static void prepareTxFrame(uint8_t port) {
     appData[appDataSize++] = temperatures[start][0];
     appData[appDataSize++] = temperatures[start][1];
     appData[appDataSize++] = temperatures[start][2];
-    Serial.print(appData[0]);
-    Serial.print(" | ");
-    Serial.print(appData[1]);
-    Serial.print(" | ");
-    Serial.print(appData[2]);
-    Serial.print(" ( ");
-    Serial.print(start);
-    Serial.print(" / ");
-    Serial.print(MaxDevs);
-    Serial.print(" ) at ");
-    Serial.println(appTxDutyCycle);
-
+    Serial.printf("%d | %d | %d ( %d / %d ) at %d\n", appData[0], appData[1], appData[2], start, MaxDevs, appTxDutyCycle);
     start++; // Incrementar 'start' después de preparar la trama
   }
 
