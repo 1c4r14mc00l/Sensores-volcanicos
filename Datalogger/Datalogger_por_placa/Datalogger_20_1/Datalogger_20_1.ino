@@ -25,7 +25,7 @@
 #define DISTANCE_CM 5
 
 // Dirección fija del nodo
-#define NODE_NUMBER 4
+#define NODE_NUMBER 3
 
 // Variables globales
 RTC_DS3231 rtc;                           
@@ -61,7 +61,7 @@ DeviceAddress sensorAddresses[20] = {
 // Prototipos de funciones
 void setupSD();
 void logData();
-void printToSerial(DateTime now, float temperatures[]);
+// void printToSerial(DateTime now, float temperatures[]);
 void setAlarm();
 
 void setup() {
@@ -82,6 +82,11 @@ void setup() {
   esp_sleep_enable_ext0_wakeup(WAKE_PIN, LOW);
 
   sensors.begin();
+  // if (sensors.getDeviceCount() < NUM_SENSORS) {
+  //   Serial.println("Error: número de sensores no coincide.");
+  //   while (1);
+  // }
+
   setupSD();
 }
 
@@ -123,30 +128,19 @@ void logData() {
 
   // Escribir encabezados si el archivo no existe
   if (!fileExists) {
-    dataFile.println("Año,Mes,Día,Hora,Minuto,Segundo,Nodo,Profundidad (cm),Temperatura (°C),Dirección del Sensor");
+    dataFile.println("Año,Mes,Día,Hora,Minuto,Segundo,Nodo,Profundidad (cm),Temperatura (°C)");
   }
 
   // Escribir datos en el archivo
   for (int i = 0; i < NUM_SENSORS; i++) {
-    char addressBuffer[60]; // Buffer para almacenar la dirección del sensor en el formato solicitado
-    snprintf(
-      addressBuffer, sizeof(addressBuffer), 
-      "{ 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X }", 
-      sensorAddresses[i][0], sensorAddresses[i][1], sensorAddresses[i][2], 
-      sensorAddresses[i][3], sensorAddresses[i][4], sensorAddresses[i][5], 
-      sensorAddresses[i][6], sensorAddresses[i][7]
-    );
-
     dataFile.printf(
-      "%04d,%02d,%02d,%02d,%02d,%02d,%d,%d,%.2f,%s\n",
+      "%04d,%02d,%02d,%02d,%02d,%02d,%d,%d,%.2f\n",
       now.year(), now.month(), now.day(),
       now.hour(), now.minute(), now.second(),
-      NODE_NUMBER, i * DISTANCE_CM, temperatures[i], addressBuffer
+      NODE_NUMBER, i * DISTANCE_CM, temperatures[i]
     );
   }
   dataFile.close();
-
-
 
   // Mostrar datos en el monitor serial
   // printToSerial(now, temperatures);
