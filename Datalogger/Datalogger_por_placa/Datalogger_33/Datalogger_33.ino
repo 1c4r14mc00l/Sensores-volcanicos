@@ -25,7 +25,7 @@
 #define DISTANCE_CM 5
 
 // Dirección fija del nodo
-#define NODE_NUMBER 1
+#define NODE_NUMBER 4
 
 // Variables globales
 RTC_DS3231 rtc;                           
@@ -62,22 +62,14 @@ DeviceAddress sensorAddresses[36] = {
   {0x28, 0xFF, 0x64, 0x0E, 0x6B, 0xB1, 0x22, 0x6E},
   {0x28, 0xFF, 0x64, 0x0E, 0x75, 0x50, 0x44, 0xD9},
   {0x28, 0xFF, 0x64, 0x0E, 0x7B, 0x5B, 0x60, 0x4C},
-  {0x28, 0xFF, 0x64, 0x0E, 0x69, 0x0F, 0x50, 0xBB},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6F, 0x69, 0x7A, 0xC7},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6B, 0xB3, 0x22, 0xFF},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6F, 0x6E, 0xBA, 0x63},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6A, 0x76, 0xE6, 0xB4},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6F, 0x76, 0x85, 0x06},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6A, 0x4C, 0x79, 0x2E},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6B, 0xB0, 0xF3, 0xA3},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6F, 0x51, 0x72, 0x5E},
-  {0x28, 0xFF, 0x64, 0x0E, 0x6B, 0x8E, 0xA6, 0xB6},
- }; 
+  {0x28, 0xFF, 0x64, 0x0E, 0x69, 0x0F, 0x50, 0xBB}
+};
+
+
 
 // Prototipos de funciones
 void setupSD();
 void logData();
-// void printToSerial(DateTime now, float temperatures[]);
 void setAlarm();
 
 void setup() {
@@ -98,11 +90,6 @@ void setup() {
   esp_sleep_enable_ext0_wakeup(WAKE_PIN, LOW);
 
   sensors.begin();
-  // if (sensors.getDeviceCount() < NUM_SENSORS) {
-  //   Serial.println("Error: número de sensores no coincide.");
-  //   while (1);
-  // }
-
   setupSD();
 }
 
@@ -144,19 +131,30 @@ void logData() {
 
   // Escribir encabezados si el archivo no existe
   if (!fileExists) {
-    dataFile.println("Año,Mes,Día,Hora,Minuto,Segundo,Nodo,Profundidad (cm),Temperatura (°C)");
+    dataFile.println("Año,Mes,Día,Hora,Minuto,Segundo,Nodo,Profundidad (cm),Temperatura (°C),Dirección del Sensor");
   }
 
   // Escribir datos en el archivo
   for (int i = 0; i < NUM_SENSORS; i++) {
+    char addressBuffer[60]; // Buffer para almacenar la dirección del sensor en el formato solicitado
+    snprintf(
+      addressBuffer, sizeof(addressBuffer), 
+      "{ 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X }", 
+      sensorAddresses[i][0], sensorAddresses[i][1], sensorAddresses[i][2], 
+      sensorAddresses[i][3], sensorAddresses[i][4], sensorAddresses[i][5], 
+      sensorAddresses[i][6], sensorAddresses[i][7]
+    );
+
     dataFile.printf(
-      "%04d,%02d,%02d,%02d,%02d,%02d,%d,%d,%.2f\n",
+      "%04d,%02d,%02d,%02d,%02d,%02d,%d,%d,%.2f,%s\n",
       now.year(), now.month(), now.day(),
       now.hour(), now.minute(), now.second(),
-      NODE_NUMBER, i * DISTANCE_CM, temperatures[i]
+      NODE_NUMBER, i * DISTANCE_CM, temperatures[i], addressBuffer
     );
   }
   dataFile.close();
+
+
 
   // Mostrar datos en el monitor serial
   // printToSerial(now, temperatures);

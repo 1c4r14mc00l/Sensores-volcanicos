@@ -61,7 +61,6 @@ DeviceAddress sensorAddresses[20] = {
 // Prototipos de funciones
 void setupSD();
 void logData();
-void printToSerial(DateTime now, float temperatures[]);
 void setAlarm();
 
 void setup() {
